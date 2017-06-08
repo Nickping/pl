@@ -1,6 +1,7 @@
 package Controller;
 
 import Model.CustomerInfo;
+import Model.OrderInfo;
 import MyExceptions.CannotFoundInfoException;
 import MyExceptions.IncorrectDayException;
 import MyExceptions.NotEnoughInfoException;
@@ -23,7 +24,7 @@ public class Order extends JPanel {
     JSpinner jSpinnerMenu;
     JButton ok;
     JButton cancel;
-    String menus[] = {"김밥", "오뎅", "떡볶이", "만두", "순대"};
+    String menus[] = {"김밥", "오뎅", "튀김", "순대"};
 
     public Order() {
         initLayout();
@@ -149,9 +150,11 @@ public class Order extends JPanel {
 
                 if(errorCheck)
                 {
+                    if(userid==null||userid.equals(""))
+                        userid="Guest";
+                    OrderInfo orderInfo = new OrderInfo(orderDay,userid,menu);
+                    app.getOrderInfos().add(orderInfo);
                     CustomerInfo customerInfo;
-
-
                     for (i = 0; i < app.getCustomerInfos().size(); i++) {
 
                         customerInfo = app.getCustomerInfos().get(i);
@@ -162,7 +165,8 @@ public class Order extends JPanel {
                                 app.getCustomerInfos().get(i).setOrderCount(0);
 
                                 updateClientDB(app.getCustomerInfos().get(i));
-                                //updateOrderDB(orderDay, userid, menu);
+                                orderInfo.setCoupon("O");
+                                updateOrderDB(1,orderInfo);
 
                                 System.out.println("주문 완료");
                                 System.out.println("쿠폰 발송");
@@ -173,9 +177,9 @@ public class Order extends JPanel {
                             } else {
                                 int count = app.getCustomerInfos().get(i).getOrderCount();
                                 app.getCustomerInfos().get(i).setOrderCount(++count);
-
+                                orderInfo.setCoupon("X");
                                 updateClientDB(app.getCustomerInfos().get(i));
-                                //updateOrderDB(orderDay, userid, menu);
+                                updateOrderDB(1,orderInfo);
 
                                 System.out.println("주문 완료");
                             }
@@ -187,8 +191,11 @@ public class Order extends JPanel {
                         //검색된 회원이 없는경우
                         try
                         {
-                            if(userid.equals(""))
-                                System.out.println("Guest "+orderDay+" "+menu+"\r\n");
+                            if(userid==null||userid.equals("Guest")) {
+                                System.out.println("Guest " + orderDay + " " + menu + "\r\n");
+                                OrderInfo customerInfoGuest = new OrderInfo(orderDay,userid,menu,"X");
+                                updateOrderDB(1,customerInfoGuest);
+                            }
                             else
                                 throw new CannotFoundInfoException("고객을 찾을 수 없습니다");
                         }
@@ -219,6 +226,8 @@ public class Order extends JPanel {
             @Override
             public void run() {
                 String userid=jTextFieldCustomer.getText();
+                String orderDay = jTextFieldDay.getText();
+                String menu = (String)jSpinnerMenu.getValue();
                 int customerCount;
                 int i=0;
                 customerCount= app.getCustomerInfos().size();
@@ -233,6 +242,8 @@ public class Order extends JPanel {
                             break;
                         else {
                             app.getCustomerInfos().get(i).setOrderCount(--current);
+
+                            updateOrderDB(0,new OrderInfo(orderDay,userid,menu));
                             CancleDialog cancleDialog= new CancleDialog(customerInfo.getCustomerid());
                             break;
                         }
@@ -242,7 +253,11 @@ public class Order extends JPanel {
                 {
                     try
                     {
-                        throw new CannotFoundInfoException("주문 내역을 확인할 수 없습니다");
+                        if(userid==null||userid.equals("")){
+                            userid="Guest";
+                        updateOrderDB(0,new OrderInfo(orderDay,userid,menu));
+                        }else
+                            throw new CannotFoundInfoException("주문 내역을 확인할 수 없습니다");
                     }
                     catch (CannotFoundInfoException e)
                     {
@@ -259,22 +274,98 @@ public class Order extends JPanel {
         thread.start();
     }
 
-    public synchronized  void updateOrderDb()
+    public synchronized  void updateOrderDB(int addOrDelete,OrderInfo orderInfo)
     {
-
+        //addOrDelete 1 : add;
+        //addOrDelete 0 : delete;
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
 
-                try
-                {
-                    File file = new File("sale.txt");
+                try {
+                    File file = new File("sales.txt");
+                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                    String line;
+                    StringBuffer stringBuffer = new StringBuffer();
 
+                    if (addOrDelete == 1)
+                    {
+                     //add
+                        while((line=reader.readLine())!=null) {
+
+                            stringBuffer.append(line);
+                            stringBuffer.append("\r\n");
+                        }
+                        String newLine;
+                        newLine=orderInfo.getOrderDay()+":"+orderInfo.getUserid()+":"+orderInfo.getOrdermenu()+":"+orderInfo.getCoupon();
+                        stringBuffer.append(newLine);
+                        stringBuffer.append("\r\n");
+
+                        String result = stringBuffer.toString();
+                        FileWriter fileWriter = new FileWriter(new File("sales.txt"));
+                        fileWriter.write(result);
+                        fileWriter.close();
+                        reader.close();
+                    }
+                    else if( addOrDelete==0)
+                    {
+                        //delete
+                        while((line=reader.readLine())!=null)
+                        {
+                            String[] arr= line.split(":");
+                            if(arr[0].compareTo(orderInfo.getOrderDay())==0&&
+                                    arr[1].compareTo(orderInfo.getUserid())==0&&
+                                    arr[2].compareTo(orderInfo.getOrdermenu())==0)
+                            {
+                                continue;
+                            }else
+                            {
+                                stringBuffer.append(line);
+                                stringBuffer.append("\r\n");
+
+                            }
+                        }
+                        String result=stringBuffer.toString();
+                        FileWriter fileWriter = new FileWriter(new File(("sales.txt")));
+                        fileWriter.write(result);
+                        fileWriter.close();;
+                        reader.close();
+                    }
+
+//                    while ((line = reader.readLine()) != null) {
+//                        String[] arr = line.split(":");
+//                        if (arr[0].compareTo(customerInfo.getCustomerid()) != 0) {
+//                            stringBuffer.append(line);
+//                            stringBuffer.append("\r\n");
+//                            continue;
+//                        } else {
+//                            arr[5] = Integer.toString(customerInfo.getOrderCount());
+//                            String newline = new String();
+//                            newline = arr[0] + ":" + arr[1] + ":" + arr[2] + ":" + arr[3] + ":" + arr[4] + ":" + arr[5];
+//                            stringBuffer.append(newline);
+//                            stringBuffer.append("\r\n");
+//                        }
+//
+//                    }
+//
+//                    String result = stringBuffer.toString();
+//
+//
+//                    System.out.println(result);
+//                    FileWriter fileWriter = new FileWriter(new File("custom.txt"));
+//                    fileWriter.write(result);
+//                    fileWriter.close();
+//                    reader.close();
+
+
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                catch (Exception e)
-                {}
             }
         };
+
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     public synchronized void updateClientDB(CustomerInfo customerInfo) {

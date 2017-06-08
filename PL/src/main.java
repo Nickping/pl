@@ -21,10 +21,17 @@ public class main {
 
         try {//파일이 없을경우 custom파일 생성
             File file = new File("custom.txt");
+            File file_sales = new File("sales.txt");
             if (!file.exists()) {
                 FileOutputStream fileOutputStream = new FileOutputStream("custom.txt");
                 fileOutputStream.close();
             }
+            if(!file_sales.exists())
+            {
+                FileOutputStream fileOutputStream = new FileOutputStream("sales.txt");
+                fileOutputStream.close();
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -67,7 +74,6 @@ public class main {
 
         try {
             File file = new File("custom.txt");
-
             BufferedReader reader = new BufferedReader(new FileReader(file));
             String line;
 
@@ -81,7 +87,7 @@ public class main {
                 System.out.println(line);
                 String[] arr = line.split(":");
                 CustomerInfo customerInfo = new CustomerInfo();
-                OrderInfo orderInfo = new OrderInfo();
+
 
                 customerInfo.setCustomerid(arr[0]);
                 customerInfo.setName(arr[1]);
@@ -93,12 +99,44 @@ public class main {
 
 
             }
-
             reader.close();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        try
+        {
+            File file = new File("sales.txt");
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                if (line.charAt(0) == '\uFEFF') {//UTF-8 BOM 문제 해결
+                    line = line.substring(1);
+                    if (line.equals(""))
+                        break;
+                }
+                System.out.println(line);
+                String[] arr = line.split(":");
+                OrderInfo orderInfo = new OrderInfo();
+                orderInfo.setOrderDay(arr[0]);
+                orderInfo.setUserid(arr[1]);
+                orderInfo.setOrdermenu(arr[2]);
+                orderInfo.setCoupon(arr[3]);
+                app.getOrderInfos().add(orderInfo);
+
+            }
+
+            reader.close();
+
+
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
     }
 }
 

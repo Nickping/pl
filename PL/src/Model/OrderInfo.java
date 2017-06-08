@@ -7,6 +7,30 @@ public class OrderInfo {
     private String orderDay;
     private String userid;
     private String ordermenu;
+    private  String coupon;
+    public OrderInfo(String orderDay, String userid, String ordermenu) {
+        this.orderDay = orderDay;
+        this.userid = userid;
+        this.ordermenu = ordermenu;
+    }
+
+    public OrderInfo(String orderDay, String userid, String ordermenu, String coupon) {
+        this.orderDay = orderDay;
+        this.userid = userid;
+        this.ordermenu = ordermenu;
+        this.coupon = coupon;
+    }
+
+    public String getCoupon() {
+        return coupon;
+    }
+
+    public void setCoupon(String coupon) {
+        this.coupon = coupon;
+    }
+
+    public OrderInfo() {
+    }
 
     public String getUserid() {
         return userid;

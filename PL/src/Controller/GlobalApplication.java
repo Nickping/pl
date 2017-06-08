@@ -30,9 +30,18 @@ public class GlobalApplication {
         orderInfos= new ArrayList<>();
     }
 
-    public synchronized static GlobalApplication getInstance() {
+    public  static GlobalApplication getInstance() {
         if (app == null)
-            app = new GlobalApplication();
+        {
+            synchronized (GlobalApplication.class)
+            {
+                if(app==null)
+                {
+                    app=new GlobalApplication();
+                }
+            }
+        }
+
         return app;
     }
 
